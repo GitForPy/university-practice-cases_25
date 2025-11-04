@@ -1,152 +1,124 @@
-from datetime import date, datetime
-from typing import List, Optional
-
 class Employee:
-    """Класс для представления сотрудника компании"""
-    
-    def __init__(self, employee_id: int, first_name: str, last_name: str, 
-                 position: str, department: str, salary: float, hire_date: date):
-        self.employee_id = employee_id
-        self.first_name = first_name
-        self.last_name = last_name
-        self.position = position
-        self.department = department
-        self.salary = salary
-        self.hire_date = hire_date
-    
-    @property
-    def full_name(self) -> str:
-        """Возвращает полное имя сотрудника"""
-        return f"{self.first_name} {self.last_name}"
-    
-    def years_of_service(self) -> int:
-        """Вычисляет стаж работы в годах"""
-        today = date.today()
-        years = today.year - self.hire_date.year
-        if today.month < self.hire_date.month or \
-           (today.month == self.hire_date.month and today.day < self.hire_date.day):
-            years -= 1
-        return years
-    
-    def give_raise(self, percentage: float) -> None:
-        """Повышает зарплату на указанный процент"""
-        self.salary *= (1 + percentage / 100)
-    
-    def __str__(self) -> str:
-        return f"Employee #{self.employee_id}: {self.full_name}, {self.position} в {self.department}"
-    
-    def __repr__(self) -> str:
-        return f"Employee({self.employee_id}, '{self.first_name}', '{self.last_name}', '{self.position}', '{self.department}', {self.salary}, {self.hire_date})"
+    """
+    Базовый класс сотрудника.
 
+    Хранит имя и текущий грейд сотрудника. Предоставляет методы
+    повышения грейда и публикации текущего уровня.
 
-class Company:
-    """Класс для управления сотрудниками компании"""
-    
-    def __init__(self, name: str):
+    Атрибуты:
+        name (str): Имя (или ФИО) сотрудника.
+        grade (int): Текущий грейд сотрудника. По умолчанию 1.
+        years_experience (int | None): Стаж в годах (если задан).
+
+    Методы:
+        grade_up(): Повышает грейд на 1.
+        publish_grade(): Печатает имя и текущий грейд сотрудника.
+        auto_upgrade_by_seniority(): Повышает грейд за каждые 2 года стажа.
+    """
+
+    def __init__(self, name, years_experience=None):
         self.name = name
-        self.employees: List[Employee] = []
-        self._next_id = 1
-    
-    def hire_employee(self, first_name: str, last_name: str, position: str, 
-                      department: str, salary: float, hire_date: Optional[date] = None) -> Employee:
-        """Нанимает нового сотрудника"""
-        if hire_date is None:
-            hire_date = date.today()
-        
-        employee = Employee(
-            employee_id=self._next_id,
-            first_name=first_name,
-            last_name=last_name,
-            position=position,
-            department=department,
-            salary=salary,
-            hire_date=hire_date
-        )
-        self.employees.append(employee)
-        self._next_id += 1
-        return employee
-    
-    def fire_employee(self, employee_id: int) -> bool:
-        """Увольняет сотрудника по ID"""
-        for i, emp in enumerate(self.employees):
-            if emp.employee_id == employee_id:
-                del self.employees[i]
-                return True
-        return False
-    
-    def get_employee_by_id(self, employee_id: int) -> Optional[Employee]:
-        """Находит сотрудника по ID"""
-        for emp in self.employees:
-            if emp.employee_id == employee_id:
-                return emp
-        return None
-    
-    def get_employees_by_department(self, department: str) -> List[Employee]:
-        """Возвращает список сотрудников определенного отдела"""
-        return [emp for emp in self.employees if emp.department == department]
-    
-    def get_total_payroll(self) -> float:
-        """Вычисляет общий фонд заработной платы"""
-        return sum(emp.salary for emp in self.employees)
-    
-    def get_average_salary(self) -> float:
-        """Вычисляет среднюю зарплату"""
-        if not self.employees:
-            return 0
-        return self.get_total_payroll() / len(self.employees)
-    
-    def get_longest_serving_employees(self, n: int = 5) -> List[Employee]:
-        """Возвращает топ-N сотрудников с наибольшим стажем"""
-        sorted_employees = sorted(self.employees, key=lambda e: e.hire_date)
-        return sorted_employees[:n]
-    
-    def give_department_raise(self, department: str, percentage: float) -> int:
-        """Повышает зарплату всем сотрудникам отдела"""
-        dept_employees = self.get_employees_by_department(department)
-        for emp in dept_employees:
-            emp.give_raise(percentage)
-        return len(dept_employees)
-    
-    def __str__(self) -> str:
-        return f"Company '{self.name}' with {len(self.employees)} employees"
+        self.years_experience = years_experience
+        self.grade = 1
+
+    def grade_up(self):
+        """
+        Повышает грейд сотрудника на 1. 
+        """
+        self.grade += 1
+
+    def publish_grade(self):
+        """
+        Печатает имя и текущий грейд сотрудника.
+
+        Output:
+            Строка вида: "<имя> <грейд>"
+        """
+        print(self.name, self.grade)
+
+    def auto_upgrade_by_seniority(self):
+        """Повышаем грейд за каждые 2 года стажа (пример логики)."""
+        if isinstance(self.years_experience, int) and self.years_experience >= 0:
+            # базовый грейд = 1, +1 за каждые полные 2 года
+            self.grade = 1 + (self.years_experience // 2)
 
 
-# Пример использования
+class Designer(Employee):
+    """
+    Класс дизайнера (наследник Employee), учитывающий международные премии и баллы.
+
+    Правила:
+      * Каждая международная премия даёт +2 балла.
+      * Повышение на 1 грейд — за каждые 7 баллов.
+      * На старте у дизайнера 2 премии → 4 балла (если не указано иначе).
+
+    Атрибуты:
+        inter_prize (int): Число международных премий (по умолчанию 2).
+        scores (int): Текущее количество баллов (по умолчанию 4).
+        points_per_prize (int): Сколько баллов даёт одна премия (по умолчанию 2).
+        points_per_grade (int): Сколько баллов нужно для повышения на 1 грейд (по умолчанию 7).
+
+    Наследуются:
+        name (str): Имя сотрудника.
+        grade (int): Текущий грейд.
+        years_experience (int | None): Стаж (если задан).
+
+    Методы:
+        print_scores(): Печатает текущее количество баллов.
+        check_the_time_upgrade_inter_prize(): Добавляет премию (+2 балла)
+            и при необходимости повышает грейд по правилу %7.
+    """
+
+    def __init__(self, name, inter_prize=2, scores=4):
+        super().__init__(name)  # инициализируем name и grade у родителя
+        self.inter_prize = inter_prize
+        self.scores = scores
+        self.points_per_prize = 2
+        self.points_per_grade = 7
+
+    def print_scores(self):
+        """
+        Печатает текущее количество баллов дизайнера.
+
+        Output:
+            Строка вида: "Кол-во баллов: <scores>"
+        """
+        print(f'Кол-во баллов: {self.scores}')
+
+    def check_the_time_upgrade_inter_prize(self):
+        """
+        Учитывает получение одной международной премии и проверяет повышение грейда.
+
+        Логика шага:
+          1) Увеличивает число международных премий на 1.
+          2) Начисляет +2 балла за премию.
+          3) Печатает текущее число баллов.
+          4) Если `scores % 7 == 0` или `scores % 7 == 1`, повышает грейд
+             (используя методы базового класса) и публикует его.
+        """
+        self.inter_prize += 1
+        self.scores += self.points_per_prize
+
+        self.print_scores()
+
+        if self.scores % self.points_per_grade in (0, 1):
+            self.grade_up()
+            self.publish_grade()
+
+
+# --- Небольшая демонстрация ---
 if __name__ == "__main__":
-    # Создаем компанию
-    company = Company("Tech Solutions Inc.")
-    
-    # Нанимаем сотрудников
-    emp1 = company.hire_employee("Иван", "Иванов", "Разработчик", "IT", 80000, date(2020, 3, 15))
-    emp2 = company.hire_employee("Мария", "Петрова", "Менеджер", "Продажи", 65000, date(2019, 7, 1))
-    emp3 = company.hire_employee("Алексей", "Сидоров", "Аналитик", "IT", 70000, date(2021, 1, 10))
-    emp4 = company.hire_employee("Елена", "Козлова", "Директор", "Продажи", 95000, date(2018, 5, 20))
-    emp5 = company.hire_employee("Дмитрий", "Новиков", "Разработчик", "IT", 75000, date(2022, 2, 1))
-    
-    print(f"Компания: {company}\n")
-    
-    # Информация о сотрудниках
-    print("Все сотрудники:")
-    for emp in company.employees:
-        print(f"  {emp}, Стаж: {emp.years_of_service()} лет")
-    
-    print(f"\nОбщий фонд зарплат: ${company.get_total_payroll():,.2f}")
-    print(f"Средняя зарплата: ${company.get_average_salary():,.2f}")
-    
-    # Сотрудники IT отдела
-    print("\nСотрудники IT отдела:")
-    for emp in company.get_employees_by_department("IT"):
-        print(f"  {emp.full_name}: ${emp.salary:,.2f}")
-    
-    # Повышаем зарплату IT отделу на 10%
-    affected = company.give_department_raise("IT", 10)
-    print(f"\nПовышена зарплата {affected} сотрудникам IT отдела на 10%")
-    
-    print("\nСотрудники IT отдела после повышения:")
-    for emp in company.get_employees_by_department("IT"):
-        print(f"  {emp.full_name}: ${emp.salary:,.2f}")
-    
-    # Топ сотрудников по стажу
-    print("\nТоп-3 сотрудника по стажу:")
-    for emp in company.get_longest_serving_employees(3):
-        print(f"  {emp.full_name}, нанят: {emp.hire_date}, стаж: {emp.years_of_service()} лет")
+    # 1) Базовый сотрудник с 5 годами стажа: 1 + (5 // 2) = 3
+    emp = Employee("Иван", years_experience=5)
+    emp.auto_upgrade_by_seniority()
+    emp.publish_grade()  # Иван 3
+
+    # 2) Дизайнер: стартовые 2 премии → 4 балла
+    des = Designer("Мария")
+    des.publish_grade()   # Мария 1
+    des.print_scores()    # Кол-во баллов: 4
+
+    # Премия №3: баллы 6 → без повышения
+    des.check_the_time_upgrade_inter_prize()
+    # Премия №4: баллы 8 → 8 % 7 == 1 → повышение до 2
+    des.check_the_time_upgrade_inter_prize()
