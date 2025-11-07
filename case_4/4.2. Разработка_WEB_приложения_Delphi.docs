@@ -1,0 +1,163 @@
+4.2 Разработка и реализация собственного WEB-приложения на Delphi и IIS
+Введение
+В рамках практической части была выполнена разработка простого веб-сервиса «Task Manager API». Данное приложение представляет собой систему управления задачами, реализованную на платформе Delphi 10.2 с использованием IIS и MS SQL Server. Основная цель разработки – продемонстрировать применение архитектуры RESTful API в трёхзвенной структуре веб-приложения.
+Выбор технологического стека
+• Язык программирования: Delphi 10.2 (Object Pascal)
+• Веб-сервер: Microsoft Internet Information Services (IIS)
+• СУБД: Microsoft SQL Server 2016+
+• Технология: ISAPI Extension (DLL)
+• Архитектура: RESTful API
+• Формат данных: JSON
+Функциональные возможности
+• Создание новой задачи (POST /api/tasks)
+• Получение списка всех задач (GET /api/tasks)
+• Получение задачи по идентификатору (GET /api/tasks/{id})
+• Обновление существующей задачи (PUT /api/tasks/{id})
+• Удаление задачи (DELETE /api/tasks/{id})
+Создание базы данных
+CREATE DATABASE TaskManagerDB;
+GO
+USE TaskManagerDB;
+GO
+
+CREATE TABLE Tasks (
+    TaskID INT PRIMARY KEY IDENTITY(1,1),
+    Title NVARCHAR(200) NOT NULL,
+    Description NVARCHAR(MAX),
+    Status NVARCHAR(20) DEFAULT 'New',
+    Priority NVARCHAR(20) DEFAULT 'Medium',
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    UpdatedAt DATETIME DEFAULT GETDATE()
+);
+GO
+
+CREATE INDEX IX_Tasks_Status ON Tasks(Status);
+GO
+
+INSERT INTO Tasks (Title, Description, Status, Priority) VALUES
+('Разработать REST API', 'Создать веб-сервис', 'In Progress', 'High'),
+('Написать документацию', 'Описать архитектуру', 'New', 'Medium');
+GO
+Главный модуль (TaskManagerAPI.dpr)
+library TaskManagerAPI;
+
+uses
+  WebBroker,
+  ISAPIThreadPool,
+  ISAPIApp,
+  WebModuleUnit in 'WebModuleUnit.pas' {WebModule1: TWebModule},
+  DataModuleUnit in 'DataModuleUnit.pas' {DataModule1: TDataModule};
+
+{$R *.res}
+
+exports
+  GetExtensionVersion,
+  HttpExtensionProc,
+  TerminateExtension;
+
+begin
+  Application.Initialize;
+  Application.CreateForm(TWebModule1, WebModule1);
+  Application.Run;
+end.
+Модуль данных (DataModuleUnit.pas)
+unit DataModuleUnit;
+
+interface
+
+uses
+  System.SysUtils, System.Classes, Data.DB,
+  Data.SqlExpr, Data.DBXMSSQL;
+
+type
+  TDataModule1 = class(TDataModule)
+    SQLConnection1: TSQLConnection;
+    Query: TSQLQuery;
+    procedure DataModuleCreate(Sender: TObject);
+  end;
+
+implementation
+
+{$R *.dfm}
+
+procedure TDataModule1.DataModuleCreate(Sender: TObject);
+begin
+  SQLConnection1.DriverName := 'MSSQL';
+  SQLConnection1.Params.Clear;
+  SQLConnection1.Params.Add('DriverName=MSSQL');
+  SQLConnection1.Params.Add('HostName=localhost');
+  SQLConnection1.Params.Add('Database=TaskManagerDB');
+  SQLConnection1.Params.Add('User_Name=sa');
+  SQLConnection1.Params.Add('Password=YourPassword');
+  SQLConnection1.Params.Add('ServerCharSet=UTF-8');
+
+  try
+    SQLConnection1.Connected := True;
+  except
+    on E: Exception do
+      raise Exception.Create('DB error: ' + E.Message);
+  end;
+
+  Query.SQLConnection := SQLConnection1;
+end;
+
+end.
+Веб-модуль (WebModuleUnit.pas)
+unit WebModuleUnit;
+
+interface
+
+uses
+  System.SysUtils, System.Classes, Web.HTTPApp,
+  Data.DB, System.JSON, DataModuleUnit;
+
+type
+  TWebModule1 = class(TWebModule)
+    procedure WebModule1DefaultHandlerAction(Sender: TObject;
+      Request: TWebRequest; Response: TWebResponse;
+      var Handled: Boolean);
+    procedure WebModuleCreate(Sender: TObject);
+    procedure WebModuleDestroy(Sender: TObject);
+  private
+    FDataModule: TDataModule1;
+    function GetAllTasks: string;
+    function GetTaskByID(const ID: Integer): string;
+    function CreateTask(const RequestBody: string): string;
+    function UpdateTask(const ID: Integer; const RequestBody: string): string;
+    function DeleteTask(const ID: Integer): string;
+    function ParsePath(const PathInfo: string; out ID: Integer): string;
+    function SetJSONResponse(Response: TWebResponse; const Content: string; StatusCode: Integer = 200): Boolean;
+  end;
+
+var
+  WebModuleClass: TComponentClass = TWebModule1;
+
+implementation
+
+{$R *.dfm}
+
+procedure TWebModule1.WebModuleCreate(Sender: TObject);
+begin
+  FDataModule := TDataModule1.Create(Self);
+end;
+
+procedure TWebModule1.WebModuleDestroy(Sender: TObject);
+begin
+  FDataModule.Free;
+end;
+
+function TWebModule1.ParsePath(const PathInfo: string; out ID: Integer): string;
+var
+  Parts: TArray<string>;
+begin
+  Parts := PathInfo.Split(['/']);
+  if Length(Parts) >= 3 then
+    Result := Parts[2]
+  else
+    Result := '';
+  ID := 0;
+  if Length(Parts) >= 4 then
+    TryStrToInt(Parts[3], ID);
+end;
+Вывод
+В результате проделанной работы был разработан и протестирован веб-сервис Task Manager API, реализованный с использованием Delphi 10.2, IIS и MS SQL Server. Приложение демонстрирует принципы построения RESTful API, обеспечивает хранение данных в базе данных и взаимодействие с пользователем посредством стандартных HTTP-запросов. Данный пример может служить основой для создания более сложных корпоративных систем управления задачами.

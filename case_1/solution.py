@@ -28,7 +28,7 @@ def sum_negative_between_min_max(arr):
             max_val = arr[idx]
             max_idx = idx
     
-    # Определяем границы для суммирования
+    # Определяем границы для суммирования на основне найденных индексов
     start_idx = min_idx if min_idx < max_idx else max_idx
     end_idx = max_idx if min_idx < max_idx else min_idx
     
@@ -42,7 +42,8 @@ def sum_negative_between_min_max(arr):
 
 
 if __name__ == "__main__":
-    # Тестовые случаи
+
+    # Тестирование
     test_cases = [
         [3, -1, 4, -2, 5, -3, 1],  # min=-3, max=5, между ними: нет элементов
         [-1, 5, -4, 2, -3, 8, 1],  # min=-4, max=8, между ними: -3

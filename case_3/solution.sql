@@ -1,8 +1,10 @@
+-- SQL-скрипт для создания схемы и таблиц для БД (Туризм). Используется PostgreSQL.
+
 -- Создаём схему (БД для туризма)
 CREATE SCHEMA IF NOT EXISTS tourism;
 SET search_path TO tourism;
 
--- СПРАВОЧНИКИ (4 шт.) 
+-- СПРАВОЧНИКИ (4 таблицы) 
 
 -- 1) Направления (страна/город)
 CREATE TABLE destinations (
@@ -51,7 +53,9 @@ CREATE TABLE clients (
     registration_date TIMESTAMP NOT NULL DEFAULT now()
 );
 
--- ТАБЛИЦА ФАКТОВ, содержащая внешние ключи на справочники (1 шт.) 
+-- ТАБЛИЦА ФАКТОВ, содержащая внешние ключи на справочники (1 таблица).
+-- Таблица предназначена для объединения с таблицами-справочниками по внешним ключам 
+-- с целью добавления аналитических разрезов (измерений).
 
 -- Бронирования/заказы туров
 CREATE TABLE tourbookings (
@@ -79,7 +83,7 @@ CREATE TABLE tourbookings (
         FOREIGN KEY (hotel_id)       REFERENCES hotels(hotel_id)
 );
 
--- Индексы для типовых выборок
+-- Индексы по полям, наиболее часто используемым в соединениях (JOIN) и фильтрации по секции WHERE.
 CREATE INDEX ix_tb_dates    ON tourbookings (departure_date, return_date);
 CREATE INDEX ix_tb_client   ON tourbookings (client_id);
 CREATE INDEX ix_tb_statuses ON tourbookings (booking_status, payment_status);

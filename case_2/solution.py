@@ -70,7 +70,7 @@ class Designer(Employee):
     """
 
     def __init__(self, name, inter_prize=2, scores=4):
-        super().__init__(name)  # инициализируем name и grade у родителя
+        super().__init__(name)  # инициализируем name и grade у родителя (Employee)
         self.inter_prize = inter_prize
         self.scores = scores
         self.points_per_prize = 2
